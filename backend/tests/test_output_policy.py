@@ -23,7 +23,11 @@ def test_order_draft_uses_only_order_tool_facts() -> None:
 
     result = apply_business_rules({"text": "Where is my package?", "order_id": "ORD-9012"}, _model_result(), trace)
 
-    assert result.draft == "Your order ORD-9012 is currently In Transit. Estimated delivery: Tomorrow."
+    assert result.draft == (
+        "Hi there,\n\nI’m sorry your order hasn’t arrived as expected. I checked order ORD-9012, "
+        "and it is currently in transit. The estimated delivery is tomorrow.\n\n"
+        "If it hasn’t arrived by then, please let us know.\n\nBest,\nSupport Team"
+    )
     assert result.tag == ResolutionTag.AUTO_RESOLVE
     assert "invented" not in result.draft
 
@@ -38,7 +42,9 @@ def test_upgrade_draft_does_not_promise_sales_follow_up() -> None:
 
     assert "Free" in result.draft
     assert "eligible" in result.draft
-    assert "contact our Sales team" in result.draft
+    assert "Please contact Sales to continue." in result.draft
+    assert result.draft.startswith("Hi there,\n\nI checked your account.")
+    assert result.draft.endswith("Best,\nSupport Team")
     assert "contact you" not in result.draft
     assert "invented@example.com" not in result.draft
     assert result.tag == ResolutionTag.ESCALATE_TO_SALES
@@ -54,6 +60,8 @@ def test_profile_picture_draft_avoids_unverified_product_details() -> None:
     assert "minutes" not in result.draft
     assert "top-right" not in result.draft
     assert "tomorrow" not in result.draft
+    assert result.draft.startswith("Hi there,\n\n")
+    assert result.draft.endswith("Best,\nSupport Team")
     assert result.tag == ResolutionTag.AUTO_RESOLVE
 
 
@@ -64,7 +72,8 @@ def test_tool_error_cannot_leak_unverified_order_claims() -> None:
         [{"type": "error", "tool": "get_order_status", "raw_output": {"error": "TOOL_EXECUTION_FAILED"}}],
     )
 
-    assert result.draft == "We could not verify your order status. Please try again later."
+    assert result.draft.startswith("Hi there,\n\nI’m sorry, but I couldn’t verify your order status")
+    assert result.draft.endswith("Best,\nSupport Team")
     assert result.tag == ResolutionTag.AUTO_RESOLVE
 
 

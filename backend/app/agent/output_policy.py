@@ -43,45 +43,62 @@ def apply_business_rules(
         eta = order.get("est_delivery")
         if order_id is None or status is None or eta is None:
             return TriageResult(
-                draft="We could not verify the order status. Please try again later.",
+                draft=("Hi there,\n\nI’m sorry, but I couldn’t verify your order status just now. "
+                       "Please try again shortly.\n\nBest,\nSupport Team"),
                 tag=ResolutionTag.AUTO_RESOLVE,
                 reasoning="The order status tool did not return all required fields.",
             )
-        draft = f"Your order {order_id} is currently {status}. Estimated delivery: {eta}."
+        status_text = str(status).lower()
+        eta_text = str(eta).lower()
+        draft = (
+            "Hi there,\n\n"
+            f"I’m sorry your order hasn’t arrived as expected. I checked order {order_id}, "
+            f"and it is currently {status_text}. The estimated delivery is {eta_text}.\n\n"
+            "If it hasn’t arrived by then, please let us know.\n\n"
+            "Best,\nSupport Team"
+        )
         return TriageResult(draft=draft, tag=ResolutionTag.AUTO_RESOLVE,
-                            reasoning="Order status and estimated delivery are taken from the order status tool.")
+                            reasoning="The order lookup confirmed the current status and estimated delivery.")
 
     tier = _successful_tool_result(trace, "get_user_tier")
     if tier:
         current_tier = tier.get("current_tier")
         if current_tier is None:
             return TriageResult(
-                draft="We could not verify your current plan. Please contact Sales to discuss Enterprise upgrade options.",
+                draft=("Hi there,\n\nI couldn’t confirm your current plan. The Sales team handles "
+                       "Enterprise upgrades and can discuss the available options with you. "
+                       "Please contact Sales to continue.\n\nBest,\nSupport Team"),
                 tag=ResolutionTag.ESCALATE_TO_SALES,
                 reasoning="The user tier tool did not return the current plan.",
             )
         eligibility = (
-            "You are eligible for an upgrade. "
+            "Your account is eligible for an upgrade. "
             if tier.get("eligible_for_upgrade") is True
             else ""
         )
         draft = (
-            f"Your current plan is {current_tier}. {eligibility}"
-            "Please contact our Sales team to discuss Enterprise upgrade options."
+            "Hi there,\n\n"
+            f"I checked your account. You’re on the {current_tier} plan. {eligibility}"
+            "The Sales team handles Enterprise upgrades and can discuss the available options with you. "
+            "Please contact Sales to continue.\n\n"
+            "Best,\nSupport Team"
         )
         return TriageResult(draft=draft, tag=ResolutionTag.ESCALATE_TO_SALES,
-                            reasoning="The user tier came from the tier tool; Enterprise upgrades are handled by Sales.")
+                            reasoning="The account plan and upgrade eligibility were checked. Enterprise requests need Sales follow-up.")
 
     if _tool_failed(trace, "get_order_status"):
         return TriageResult(
-            draft="We could not verify your order status. Please try again later.",
+            draft=("Hi there,\n\nI’m sorry, but I couldn’t verify your order status just now. "
+                   "Please try again shortly.\n\nBest,\nSupport Team"),
             tag=ResolutionTag.AUTO_RESOLVE,
             reasoning="The order status tool did not complete successfully.",
         )
 
     if _tool_failed(trace, "get_user_tier"):
         return TriageResult(
-            draft="We could not verify your current plan. Please contact Sales to discuss Enterprise upgrade options.",
+            draft=("Hi there,\n\nI couldn’t confirm your current plan. The Sales team handles "
+                   "Enterprise upgrades and can discuss the available options with you. "
+                   "Please contact Sales to continue.\n\nBest,\nSupport Team"),
             tag=ResolutionTag.ESCALATE_TO_SALES,
             reasoning="The user tier tool did not complete successfully.",
         )
@@ -92,23 +109,27 @@ def apply_business_rules(
         and not ticket.get("order_id")
     ):
         return TriageResult(
-            draft="Could you share your order ID so we can check its shipping status?",
+            draft=("Hi there,\n\nI’d be happy to check the delivery status for you. "
+                   "Could you share your order ID so I can look it up?\n\nBest,\nSupport Team"),
             tag=ResolutionTag.AUTO_RESOLVE,
             reasoning="An order ID is required before the order status tool can be used.",
         )
 
     if any(term in text for term in ("upgrade", "enterprise", "tier", "plan")):
         return TriageResult(
-            draft="Enterprise upgrades are handled by our Sales team. Please contact Sales to discuss next steps.",
+            draft=("Hi there,\n\nThe Sales team handles Enterprise upgrades and can walk you through "
+                   "the available options. Please contact Sales to discuss the next steps.\n\n"
+                   "Best,\nSupport Team"),
             tag=ResolutionTag.ESCALATE_TO_SALES,
             reasoning="Enterprise upgrade requests are handled by Sales.",
         )
 
     if any(term in text for term in ("profile picture", "profile photo", "avatar")):
         return TriageResult(
-            draft=("You can usually change your profile picture from your profile or account settings. "
-                   "Look for the profile photo option, choose a new image, and save your changes. "
-                   "If you cannot find the option, contact support for guidance."),
+            draft=("Hi there,\n\nTo update your profile picture, open your profile or account settings "
+                   "and look for the photo update option. Choose a new image and save your changes. "
+                   "If you can’t find the setting, please contact Support for help.\n\n"
+                   "Best,\nSupport Team"),
             tag=ResolutionTag.AUTO_RESOLVE,
             reasoning="This is a general self-service question and does not require a support tool.",
         )
