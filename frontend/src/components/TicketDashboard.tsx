@@ -92,19 +92,18 @@ export function TicketDashboard() {
         <div className="brand-lockup">
           <span className="brand-mark" aria-hidden="true">TF</span>
           <div>
-            <p className="eyebrow">Support operations / Desk 01</p>
+            <p className="eyebrow">AI customer support</p>
             <h1>TriageForge</h1>
           </div>
         </div>
-        <div className="masthead-status"><span className="live-dot" /> Support desk</div>
       </header>
 
       <main className="dashboard-shell">
         <section className="page-intro" aria-labelledby="page-title">
           <div>
-            <p className="eyebrow">Customer support / Queue overview</p>
-            <h2 id="page-title">Ticket desk</h2>
-            <p className="intro-copy">Review incoming customer requests and their current status.</p>
+            <p className="eyebrow">Inbox / Active queue</p>
+            <h2 id="page-title">Customer tickets</h2>
+            <p className="intro-copy">Review and triage incoming customer requests.</p>
           </div>
           <button
             type="button"
@@ -159,10 +158,6 @@ export function TicketDashboard() {
           </div>
         )}
 
-        <footer className="page-footer">
-          <span>SupportAgent Desk</span>
-          <span>Ticket data is served by the backend API.</span>
-        </footer>
       </main>
     </>
   );

@@ -10,7 +10,7 @@ const spaceMono = Space_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TriageForge | Support Desk",
+  title: "TriageForge | Customer Support Triage",
   description: "Review and triage customer support tickets.",
 };
 

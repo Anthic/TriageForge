@@ -1,4 +1,3 @@
-import { StatusBadge } from "@/components/StatusBadge";
 import { OutputCard } from "@/components/OutputCard";
 import { TraceAccordion } from "@/components/TraceAccordion";
 import { ErrorBox } from "@/components/ErrorBox";
@@ -27,8 +26,7 @@ export function TicketDetail({ ticket, isRunning, result, trace, errorMessage, o
   return (
     <section className="panel ticket-detail" aria-labelledby="ticket-detail-heading" aria-busy={isRunning}>
       <div className="detail-topline">
-        <p className="eyebrow">Selected ticket / {ticket.id}</p>
-        <StatusBadge status={ticket.status} />
+        <p className="eyebrow">Selected ticket</p>
       </div>
       <h2 id="ticket-detail-heading" className="detail-title">Customer message</h2>
       <blockquote className="customer-message">{ticket.text}</blockquote>
@@ -53,10 +51,6 @@ export function TicketDetail({ ticket, isRunning, result, trace, errorMessage, o
         <div className="metadata-item">
           <dt>Created</dt>
           <dd>{formatDate(ticket.created_at)} UTC</dd>
-        </div>
-        <div className="metadata-item metadata-item-wide">
-          <dt>Current status</dt>
-          <dd><StatusBadge status={ticket.status} /></dd>
         </div>
       </dl>
       <p className="detail-note">Review the customer message and ticket metadata before taking action.</p>
