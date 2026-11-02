@@ -1,6 +1,6 @@
 # SupportAgent Desk
 
-AI-powered support ticket triage. Next.js (brutalist UI) + FastAPI + LangGraph + Gemini function calling,
+AI-powered support ticket triage. Next.js (brutalist UI) + FastAPI + LangGraph + Groq tool calling,
 with a full agent execution trace.
 
 > README is completed in the last phase. See `.docs/` for requirements and `.agent/` for build rules.

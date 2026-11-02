@@ -1,18 +1,35 @@
 """FastAPI application entry point for TriageForge."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.api.routes import tickets
+
+from app.api.routes import tickets, triage
 from app.core.config import settings
 from app.core.logging import logger
+from app.core.rate_limit import limiter
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Log application startup using FastAPI's lifespan lifecycle."""
+    logger.info("TriageForge backend initialized with seed tickets.")
+    yield
+
 
 app = FastAPI(
     title="TriageForge API",
     version="1.0.0",
     description="Autonomous AI Support Triage with fully traceable agent execution.",
+    lifespan=lifespan,
 )
+app.state.limiter = limiter
 
 # CORS Policy
 app.add_middleware(
@@ -35,8 +52,25 @@ async def http_exception_handler(_: Request, exc: HTTPException | StarletteHTTPE
     return JSONResponse(status_code=exc.status_code, content=payload)
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_: Request, __: RequestValidationError) -> JSONResponse:
+    """Return a stable validation envelope without exposing request internals."""
+    return JSONResponse(status_code=422, content={
+        "error": {"code": "VALIDATION_ERROR", "message": "The request contains invalid data."}
+    })
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(_: Request, __: RateLimitExceeded) -> JSONResponse:
+    """Return rate-limit failures in the API's standard error envelope."""
+    return JSONResponse(status_code=429, content={
+        "error": {"code": "RATE_LIMITED", "message": "Too many triage requests. Try again shortly."}
+    })
+
+
 # Include Routers
 app.include_router(tickets.router)
+app.include_router(triage.router)
 
 
 @app.get("/", tags=["system"])
@@ -53,9 +87,3 @@ async def root() -> dict[str, str]:
 async def health_check() -> dict[str, str]:
     """Health check endpoint to verify backend service uptime."""
     return {"status": "ok"}
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    """Log server startup confirmation."""
-    logger.info("TriageForge backend initialized with seed tickets.")

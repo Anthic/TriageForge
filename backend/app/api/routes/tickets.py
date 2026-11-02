@@ -1,6 +1,7 @@
 """API routes for ticket querying."""
 
 from fastapi import APIRouter, HTTPException, Path, status
+
 from app.schemas.ticket import Ticket
 from app.services.ticket_store import ticket_store
 
