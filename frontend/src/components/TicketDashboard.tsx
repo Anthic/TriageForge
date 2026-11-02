@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { TicketDetail } from "@/components/TicketDetail";
 import { TicketList } from "@/components/TicketList";
-import { getTickets, runTicketTriage, ApiRequestError } from "@/lib/api";
+import { getTickets, streamTicketTriage, ApiRequestError } from "@/lib/api";
 import { TICKET_STATUS } from "@/lib/constants";
 import type { Ticket, TriageResponse } from "@/types";
 
@@ -13,6 +13,7 @@ export function TicketDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTriage, setActiveTriage] = useState<TriageResponse | null>(null);
+  const [streamingTrace, setStreamingTrace] = useState<TriageResponse["trace"]>([]);
   const [triageError, setTriageError] = useState<{ ticketId: string; message: string; trace: TriageResponse["trace"] } | null>(null);
   const [triagingTicketId, setTriagingTicketId] = useState<string | null>(null);
   const isTriaging = triagingTicketId !== null;
@@ -47,15 +48,20 @@ export function TicketDashboard() {
   const handleRunTriage = async () => {
     if (!selectedTicket || isTriaging) return;
     const ticketId = selectedTicket.id;
+    const receivedTrace: TriageResponse["trace"] = [];
     setTriagingTicketId(ticketId);
     setActiveTriage(null);
+    setStreamingTrace([]);
     setTriageError(null);
     setTickets((current) => current.map((ticket) =>
       ticket.id === ticketId ? { ...ticket, status: TICKET_STATUS.PROCESSING } : ticket,
     ));
 
     try {
-      const response = await runTicketTriage(ticketId);
+      const response = await streamTicketTriage(ticketId, (step) => {
+        receivedTrace.push(step);
+        setStreamingTrace((current) => [...current, step]);
+      });
       setTickets((current) => current.map((ticket) =>
         ticket.id === ticketId ? response.ticket : ticket,
       ));
@@ -70,7 +76,11 @@ export function TicketDashboard() {
           status: requestError.status === 409 ? TICKET_STATUS.PROCESSING : TICKET_STATUS.PENDING,
         } : ticket,
       ));
-      setTriageError({ ticketId, message: requestError.message, trace: requestError.trace });
+      setTriageError({
+        ticketId,
+        message: requestError.message,
+        trace: requestError.trace.length ? requestError.trace : receivedTrace,
+      });
     } finally {
       setTriagingTicketId(null);
     }
@@ -135,7 +145,7 @@ export function TicketDashboard() {
                 ticket={selectedTicket}
                 isRunning={triagingTicketId === selectedTicket.id}
                 result={visibleTriage?.result ?? null}
-                trace={visibleTriage?.trace ?? visibleTriageError?.trace ?? []}
+                trace={visibleTriage?.trace ?? visibleTriageError?.trace ?? (triagingTicketId === selectedTicket.id ? streamingTrace : [])}
                 errorMessage={visibleTriageError?.message ?? null}
                 onRunTriage={() => void handleRunTriage()}
               />

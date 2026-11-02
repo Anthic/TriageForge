@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { TraceStep } from "@/types";
 
 interface TraceAccordionProps {
   trace: TraceStep[];
+  isLive?: boolean;
 }
 
 function formatValue(value: unknown): string {
@@ -21,9 +22,13 @@ function stepLabel(step: TraceStep): string {
   return "Agent Reasoning";
 }
 
-export function TraceAccordion({ trace }: TraceAccordionProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+export function TraceAccordion({ trace, isLive = false }: TraceAccordionProps) {
+  const [isExpanded, setIsExpanded] = useState(isLive);
   const panelId = "agent-execution-trace-content";
+
+  useEffect(() => {
+    if (isLive) setIsExpanded(true);
+  }, [isLive]);
 
   return (
     <section className="trace-section">

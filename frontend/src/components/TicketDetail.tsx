@@ -81,9 +81,10 @@ export function TicketDetail({ ticket, isRunning, result, trace, errorMessage, o
       {isRunning && (
         <p className="agent-progress" role="status" aria-live="polite">
           <span className="loading-indicator" aria-hidden="true" />
-          The agent is reviewing this customer ticket.
+          The agent is reviewing this customer ticket. {trace.length > 0 && `${trace.length} trace ${trace.length === 1 ? "step" : "steps"} received.`}
         </p>
       )}
+      {isRunning && trace.length > 0 && <TraceAccordion trace={trace} isLive />}
       {errorMessage && (
         <ErrorBox message={errorMessage} trace={trace} onRetry={onRunTriage} isRetrying={isRunning} />
       )}

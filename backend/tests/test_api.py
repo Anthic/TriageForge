@@ -99,3 +99,59 @@ def test_triage_provider_rate_limit_maps_to_service_unavailable(monkeypatch) -> 
     assert response.json()["error"]["code"] == "LLM_RATE_LIMITED"
     assert response.json()["trace"][0]["type"] == "error"
     assert ticket_store.get_by_id("TCK-001").status == TicketStatus.PENDING
+
+
+def test_streaming_triage_emits_trace_result_and_done_in_order(monkeypatch) -> None:
+    """The SSE route streams trace steps, final result, and updated ticket."""
+    ticket_store.reset_to_seed()
+    trace_step = {
+        "step": 1, "node": "agent", "type": "reasoning", "reasoning": "Reviewing request.",
+        "duration_ms": 12, "timestamp": "2026-01-01T00:00:00+00:00",
+    }
+
+    async def fake_astream(*args, **kwargs):
+        yield {"agent": {"trace": [trace_step]}}
+        yield {"finalize": {
+            "trace": [trace_step],
+            "result": {"draft": "Your order is in transit and is expected tomorrow.",
+                       "tag": "Auto-Resolve", "reasoning": "The order status was checked."},
+        }}
+
+    monkeypatch.setattr("app.services.triage_service.triage_graph.astream", fake_astream)
+
+    response = client.post("/tickets/TCK-001/triage/stream")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert response.headers["cache-control"] == "no-cache, no-transform"
+    assert response.text.index("event: trace") < response.text.index("event: result") < response.text.index("event: done")
+    assert '"type":"reasoning"' in response.text
+    assert '"tag":"Auto-Resolve"' in response.text
+    assert '"status":"Resolved"' in response.text
+
+
+def test_streaming_triage_errors_are_streamed_and_reset_ticket(monkeypatch) -> None:
+    """Provider failures after stream headers become sanitized error events."""
+    ticket_store.reset_to_seed()
+
+    async def failing_astream(*args, **kwargs):
+        raise RuntimeError("provider failure with private details")
+        yield  # Make this an async generator.
+
+    monkeypatch.setattr("app.services.triage_service.triage_graph.astream", failing_astream)
+
+    response = client.post("/tickets/TCK-001/triage/stream")
+
+    assert response.status_code == 200
+    assert "event: error" in response.text
+    assert "LLM_UNAVAILABLE" in response.text
+    assert "private details" not in response.text
+    assert ticket_store.get_by_id("TCK-001").status == TicketStatus.PENDING
+
+
+def test_streaming_triage_missing_ticket_fails_before_sse_response() -> None:
+    """Missing tickets receive normal HTTP errors before SSE headers are sent."""
+    response = client.post("/tickets/TCK-999/triage/stream")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "TICKET_NOT_FOUND"
