@@ -1,0 +1,10 @@
+# Runtime packages. After first successful install run `pip freeze` and pin exact versions.
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+langgraph
+langchain-core
+langchain-google-genai
+slowapi
