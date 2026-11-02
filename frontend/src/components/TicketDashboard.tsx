@@ -3,14 +3,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { TicketDetail } from "@/components/TicketDetail";
 import { TicketList } from "@/components/TicketList";
-import { getTickets } from "@/lib/api";
-import type { Ticket } from "@/types";
+import { getTickets, runTicketTriage, ApiRequestError } from "@/lib/api";
+import { TICKET_STATUS } from "@/lib/constants";
+import type { Ticket, TriageResponse } from "@/types";
 
 export function TicketDashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeTriage, setActiveTriage] = useState<TriageResponse | null>(null);
+  const [triageError, setTriageError] = useState<{ ticketId: string; message: string; trace: TriageResponse["trace"] } | null>(null);
+  const [triagingTicketId, setTriagingTicketId] = useState<string | null>(null);
+  const isTriaging = triagingTicketId !== null;
 
   const loadTickets = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
@@ -36,6 +41,40 @@ export function TicketDashboard() {
   }, [loadTickets]);
 
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null;
+  const visibleTriage = activeTriage?.ticket.id === selectedTicket?.id ? activeTriage : null;
+  const visibleTriageError = triageError?.ticketId === selectedTicket?.id ? triageError : null;
+
+  const handleRunTriage = async () => {
+    if (!selectedTicket || isTriaging) return;
+    const ticketId = selectedTicket.id;
+    setTriagingTicketId(ticketId);
+    setActiveTriage(null);
+    setTriageError(null);
+    setTickets((current) => current.map((ticket) =>
+      ticket.id === ticketId ? { ...ticket, status: TICKET_STATUS.PROCESSING } : ticket,
+    ));
+
+    try {
+      const response = await runTicketTriage(ticketId);
+      setTickets((current) => current.map((ticket) =>
+        ticket.id === ticketId ? response.ticket : ticket,
+      ));
+      setActiveTriage(response);
+    } catch (error) {
+      const requestError = error instanceof ApiRequestError
+        ? error
+        : new ApiRequestError("The triage request failed unexpectedly.", 0, "TRIAGE_ERROR");
+      setTickets((current) => current.map((ticket) =>
+        ticket.id === ticketId ? {
+          ...ticket,
+          status: requestError.status === 409 ? TICKET_STATUS.PROCESSING : TICKET_STATUS.PENDING,
+        } : ticket,
+      ));
+      setTriageError({ ticketId, message: requestError.message, trace: requestError.trace });
+    } finally {
+      setTriagingTicketId(null);
+    }
+  };
 
   return (
     <>
@@ -61,7 +100,7 @@ export function TicketDashboard() {
             type="button"
             className="refresh-button"
             onClick={() => void loadTickets()}
-            disabled={isLoading}
+            disabled={isLoading || isTriaging}
           >
             {isLoading ? "Loading tickets" : "Refresh queue"}
           </button>
@@ -89,9 +128,17 @@ export function TicketDashboard() {
               tickets={tickets}
               selectedTicketId={selectedTicket?.id ?? null}
               onSelect={setSelectedTicketId}
+              isDisabled={isTriaging}
             />
             {selectedTicket ? (
-              <TicketDetail ticket={selectedTicket} />
+              <TicketDetail
+                ticket={selectedTicket}
+                isRunning={triagingTicketId === selectedTicket.id}
+                result={visibleTriage?.result ?? null}
+                trace={visibleTriage?.trace ?? visibleTriageError?.trace ?? []}
+                errorMessage={visibleTriageError?.message ?? null}
+                onRunTriage={() => void handleRunTriage()}
+              />
             ) : (
               <section className="panel empty-detail" aria-live="polite">
                 <p className="eyebrow">No selection</p>

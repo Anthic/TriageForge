@@ -5,9 +5,10 @@ interface TicketListProps {
   tickets: Ticket[];
   selectedTicketId: string | null;
   onSelect: (ticketId: string) => void;
+  isDisabled?: boolean;
 }
 
-export function TicketList({ tickets, selectedTicketId, onSelect }: TicketListProps) {
+export function TicketList({ tickets, selectedTicketId, onSelect, isDisabled = false }: TicketListProps) {
   return (
     <section className="panel ticket-list-panel" aria-labelledby="ticket-queue-heading">
       <div className="panel-heading">
@@ -32,6 +33,7 @@ export function TicketList({ tickets, selectedTicketId, onSelect }: TicketListPr
                   type="button"
                   className={`ticket-select${selected ? " is-selected" : ""}`}
                   onClick={() => onSelect(ticket.id)}
+                  disabled={isDisabled}
                   aria-pressed={selected}
                   aria-current={selected ? "true" : undefined}
                 >
