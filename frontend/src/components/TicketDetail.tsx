@@ -90,7 +90,7 @@ export function TicketDetail({ ticket, isRunning, result, trace, errorMessage, o
       )}
       {result && (
         <div className="agent-result-stack">
-          <OutputCard result={result} />
+          <OutputCard result={result} trace={trace} />
           <TraceAccordion trace={trace} />
         </div>
       )}

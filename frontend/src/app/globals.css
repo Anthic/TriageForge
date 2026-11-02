@@ -139,11 +139,23 @@ button:focus-visible {
 .agent-avatar { display: grid; width: 42px; height: 42px; place-items: center; border: 3px solid var(--ink); background: var(--paper); font-size: 11px; font-weight: 700; }
 .agent-output-heading .eyebrow { margin-bottom: 2px; color: var(--ink); }
 .agent-output-heading h3 { margin: 0; font-size: 14px; letter-spacing: -0.04em; text-transform: uppercase; }
-.result-tag { display: grid; justify-items: end; gap: 3px; }
-.result-tag .eyebrow { margin: 0; }
-.agent-draft { margin: 0; padding: 20px; border-bottom: 2px solid var(--ink); background: #fffdf6; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
-.agent-reasoning-label { margin: 16px 20px 4px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.agent-reasoning { margin: 0; padding: 0 20px 18px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+.triage-result-sections { display: grid; }
+.triage-result-section { padding: 17px 20px; }
+.triage-result-section + .triage-result-section { border-top: 2px solid var(--ink); }
+.triage-section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.triage-section-number { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 2px solid var(--ink); background: var(--yellow); font-size: 10px; font-weight: 700; }
+.triage-section-heading .eyebrow { margin: 0 0 2px; color: var(--muted); }
+.triage-section-heading h4 { margin: 0; font-size: 11px; text-transform: uppercase; }
+.triage-decision { background: #fffdf6; }
+.triage-decision-content { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.triage-decision-content p { margin: 0; font-size: 11px; line-height: 1.5; }
+.triage-findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin: 0; }
+.triage-finding { min-width: 0; padding: 10px; border: 2px solid var(--ink); background: #fffdf6; }
+.triage-finding dt { margin-bottom: 5px; color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.triage-finding dd { overflow-wrap: anywhere; margin: 0; font-size: 11px; font-weight: 700; }
+.triage-customer-reply { background: #fffdf6; }
+.agent-draft { margin: 0; padding: 15px; border: 2px solid var(--ink); background: var(--paper); font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
+.agent-reasoning { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
 .trace-section { border: 3px solid var(--ink); background: #fffdf6; }
 .trace-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 0; color: var(--ink); background: var(--paper); text-align: left; cursor: pointer; }
 .trace-toggle > span:first-child { display: grid; gap: 2px; }
