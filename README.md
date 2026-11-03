@@ -215,7 +215,8 @@ Typography strictly utilizes **Space Mono** (`var(--font-space-mono)`) across al
    GROQ_API_KEY=your_groq_api_key_here
    GROQ_MODEL=openai/gpt-oss-20b
    LLM_FALLBACK_MODEL=openai/gpt-oss-120b
-   CORS_ORIGINS=http://localhost:3000
+   CORS_ORIGINS=http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001
+   CORS_ORIGIN_REGEX=^https:\/\/.*\.vercel\.app$
    MAX_TOOL_CALLS=3
    LLM_TIMEOUT_SECONDS=30
    LLM_REQUESTS_PER_MINUTE=60
@@ -280,7 +281,8 @@ Typography strictly utilizes **Space Mono** (`var(--font-space-mono)`) across al
 | `GROQ_API_KEY` | String | Required | API key for the primary LLM provider. |
 | `GROQ_MODEL` | String | `openai/gpt-oss-20b` | Primary chat completion model for triage. |
 | `LLM_FALLBACK_MODEL` | String | `openai/gpt-oss-120b` | Secondary model invoked if primary encounters rate limits. |
-| `CORS_ORIGINS` | String | `http://localhost:3000` | Comma-delimited list of allowed browser origins. |
+| `CORS_ORIGINS` | String | `http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001` | Comma-delimited list of allowed browser origins. |
+| `CORS_ORIGIN_REGEX` | String | `^https:\/\/.*\.vercel\.app$` | Regex pattern allowing Vercel production and preview deployment domains. |
 | `MAX_TOOL_CALLS` | Integer | `3` | Maximum tool execution turns allowed per ticket run. |
 | `LLM_TIMEOUT_SECONDS` | Integer | `30` | Timeout threshold for individual LLM network requests. |
 | `LLM_REQUESTS_PER_MINUTE` | Integer | `60` | In-memory token bucket rate limit for outgoing model requests. |

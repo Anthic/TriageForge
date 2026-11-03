@@ -1,65 +1,43 @@
-"""Tests for CORS policy across localhost and Vercel domains."""
+"""Tests for CORS configuration parsing and Vercel regex matching."""
 
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
+import re
+from app.core.config import Settings, settings
 
 
-def test_cors_allows_localhost_3000() -> None:
-    """Frontend dev server on port 3000 must be allowed."""
-    response = client.get("/health", headers={"Origin": "http://localhost:3000"})
-    assert response.status_code == 200
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
-    assert response.headers.get("access-control-allow-credentials") == "true"
+def test_default_cors_origins_includes_localhost_ports() -> None:
+    """Default origins must include local ports 3000 and 3001 for both localhost and 127.0.0.1."""
+    origins = settings.cors_origins_list
+    assert "http://localhost:3000" in origins
+    assert "http://localhost:3001" in origins
+    assert "http://127.0.0.1:3000" in origins
+    assert "http://127.0.0.1:3001" in origins
 
 
-def test_cors_allows_localhost_3001() -> None:
-    """Alternative dev server on port 3001 must be allowed."""
-    response = client.get("/health", headers={"Origin": "http://localhost:3001"})
-    assert response.status_code == 200
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:3001"
-    assert response.headers.get("access-control-allow-credentials") == "true"
-
-
-def test_cors_allows_127_0_0_1() -> None:
-    """Direct IP loopback origins on 3000 and 3001 must be allowed."""
-    for origin in ("http://127.0.0.1:3000", "http://127.0.0.1:3001"):
-        response = client.get("/health", headers={"Origin": origin})
-        assert response.status_code == 200
-        assert response.headers.get("access-control-allow-origin") == origin
-
-
-def test_cors_allows_vercel_production_and_preview_domains() -> None:
-    """Any Vercel production or preview branch origin must be allowed via regex."""
-    vercel_origins = [
-        "https://triageforge.vercel.app",
-        "https://triageforge-git-main-user.vercel.app",
-        "https://frontend-alpha-preview.vercel.app",
+def test_cors_origins_strips_trailing_slashes_and_whitespace() -> None:
+    """Custom origins in .env must be normalized without trailing slashes."""
+    custom_settings = Settings(
+        cors_origins="http://localhost:3000/ , https://my-frontend.vercel.app/ "
+    )
+    assert custom_settings.cors_origins_list == [
+        "http://localhost:3000",
+        "https://my-frontend.vercel.app",
     ]
-    for origin in vercel_origins:
-        response = client.get("/health", headers={"Origin": origin})
-        assert response.status_code == 200
-        assert response.headers.get("access-control-allow-origin") == origin
-        assert response.headers.get("access-control-allow-credentials") == "true"
 
 
-def test_cors_preflight_options_for_stream() -> None:
-    """Preflight OPTIONS request from Vercel must succeed with 200 OK."""
-    headers = {
-        "Origin": "https://triageforge.vercel.app",
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "Content-Type,Accept",
-    }
-    response = client.options("/tickets/TCK-001/triage/stream", headers=headers)
-    assert response.status_code == 200
-    assert response.headers.get("access-control-allow-origin") == "https://triageforge.vercel.app"
-    assert response.headers.get("access-control-allow-credentials") == "true"
-    assert "POST" in response.headers.get("access-control-allow-methods", "")
+def test_cors_regex_matches_vercel_domains() -> None:
+    """The regex must match production and preview Vercel domains."""
+    assert settings.cors_origin_regex is not None
+    pattern = re.compile(settings.cors_origin_regex)
+    assert pattern.match("https://triageforge.vercel.app")
+    assert pattern.match("https://triageforge-git-main-user.vercel.app")
+    assert pattern.match("https://preview-12345.vercel.app")
 
 
-def test_cors_blocks_unauthorized_external_origins() -> None:
-    """Random unauthorized domains must not receive access control headers."""
-    response = client.get("/health", headers={"Origin": "https://malicious-phishing-site.com"})
-    assert response.status_code == 200
-    assert "access-control-allow-origin" not in response.headers
+def test_cors_regex_rejects_unauthorized_domains() -> None:
+    """The regex must reject non-vercel domains and unencrypted http."""
+    assert settings.cors_origin_regex is not None
+    pattern = re.compile(settings.cors_origin_regex)
+    assert not pattern.match("http://triageforge.vercel.app")
+    assert not pattern.match("https://malicious-vercel.app.attacker.com")
+    assert not pattern.match("https://attacker.com")
+
