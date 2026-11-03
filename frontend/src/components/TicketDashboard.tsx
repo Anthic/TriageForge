@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TicketDetail } from "@/components/TicketDetail";
 import { TicketList } from "@/components/TicketList";
+import { Spinner } from "@/components/Spinner";
 import { getTickets, streamTicketTriage, ApiRequestError } from "@/lib/api";
 import { TICKET_STATUS } from "@/lib/constants";
 import type { Ticket, TriageResponse } from "@/types";
@@ -17,28 +18,34 @@ export function TicketDashboard() {
   const [triageError, setTriageError] = useState<{ ticketId: string; message: string; trace: TriageResponse["trace"] } | null>(null);
   const [triagingTicketId, setTriagingTicketId] = useState<string | null>(null);
   const isTriaging = triagingTicketId !== null;
+  const isMountedRef = useRef(true);
 
-  const loadTickets = useCallback(async (signal?: AbortSignal) => {
+  const loadTickets = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const data = await getTickets(signal);
+      const data = await getTickets();
+      if (!isMountedRef.current) return;
       setTickets(data);
       setSelectedTicketId((current) =>
         current && data.some((ticket) => ticket.id === current) ? current : (data[0]?.id ?? null),
       );
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") return;
+      if (!isMountedRef.current) return;
       setErrorMessage(error instanceof Error ? error.message : "Could not load tickets.");
     } finally {
-      if (!signal?.aborted) setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void loadTickets(controller.signal);
-    return () => controller.abort();
+    isMountedRef.current = true;
+    void loadTickets();
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [loadTickets]);
 
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedTicketId) ?? null;
@@ -128,7 +135,7 @@ export function TicketDashboard() {
           </section>
         ) : isLoading && tickets.length === 0 ? (
           <div className="loading-panel" role="status" aria-live="polite">
-            <span className="loading-indicator" aria-hidden="true" />
+            <Spinner />
             <p>Loading ticket queue...</p>
           </div>
         ) : (

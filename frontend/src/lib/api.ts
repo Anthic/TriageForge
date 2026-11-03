@@ -2,6 +2,22 @@ import type { ApiErrorPayload, Ticket, TriageResponse, TraceStep } from "@/types
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
+export function isAbortError(error: unknown): boolean {
+  if (!error) return false;
+  if (typeof DOMException !== "undefined" && error instanceof DOMException && error.name === "AbortError") {
+    return true;
+  }
+  if (error instanceof Error) {
+    return (
+      error.name === "AbortError" ||
+      error.name === "CanceledError" ||
+      error.message.toLowerCase().includes("abort") ||
+      error.message.toLowerCase().includes("canceled")
+    );
+  }
+  return false;
+}
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly code: string;
@@ -21,7 +37,11 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { ...init, cache: "no-store" });
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw error;
+    if (init?.signal?.aborted || isAbortError(error)) {
+      const abortError = new Error("The request was aborted.");
+      abortError.name = "AbortError";
+      throw abortError;
+    }
     throw new ApiRequestError("Could not connect to the ticket service.", 0, "NETWORK_ERROR");
   }
 
@@ -53,7 +73,11 @@ export async function streamTicketTriage(
       cache: "no-store",
     });
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") throw error;
+    if (isAbortError(error)) {
+      const abortError = new Error("The request was aborted.");
+      abortError.name = "AbortError";
+      throw abortError;
+    }
     throw new ApiRequestError("Could not connect to the ticket service.", 0, "NETWORK_ERROR");
   }
 

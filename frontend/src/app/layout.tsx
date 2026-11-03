@@ -16,8 +16,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={spaceMono.variable}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={spaceMono.variable} suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

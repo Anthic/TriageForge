@@ -1,6 +1,7 @@
 import { OutputCard } from "@/components/OutputCard";
 import { TraceAccordion } from "@/components/TraceAccordion";
 import { ErrorBox } from "@/components/ErrorBox";
+import { Spinner } from "@/components/Spinner";
 import type { Ticket, TraceStep, TriageResult } from "@/types";
 
 interface TicketDetailProps {
@@ -67,16 +68,33 @@ export function TicketDetail({ ticket, isRunning, result, trace, errorMessage, o
           disabled={isRunning}
         >
           {isRunning ? (
-            <><span className="button-spinner" aria-hidden="true" /> Agent is working</>
+            <><Spinner size="sm" /> RUNNING TRIAGE...</>
           ) : "Run AI Triage Agent"}
         </button>
       </div>
 
       {isRunning && (
-        <p className="agent-progress" role="status" aria-live="polite">
-          <span className="loading-indicator" aria-hidden="true" />
-          The agent is reviewing this customer ticket. {trace.length > 0 && `${trace.length} trace ${trace.length === 1 ? "step" : "steps"} received.`}
-        </p>
+        <div className="agent-live-hud" role="status" aria-live="polite">
+          <div className="agent-hud-topline">
+            <div className="agent-hud-badge">
+              <span className="live-pulse-dot" aria-hidden="true" />
+              <span>AGENT RUN IN PROGRESS</span>
+            </div>
+            <span className="agent-hud-step-counter">
+              {trace.length === 0 ? "INITIALIZING" : `STEP ${String(trace.length).padStart(2, "0")} RECEIVED`}
+            </span>
+          </div>
+          <p className="agent-hud-message">
+            {trace.length === 0
+              ? "Agent is inspecting ticket context and evaluating tool calls..."
+              : trace[trace.length - 1]?.type === "tool_call"
+              ? `Invoking support tool: ${trace[trace.length - 1]?.tool ?? "database lookup"}...`
+              : trace[trace.length - 1]?.type === "tool_result"
+              ? `Analyzing tool response from ${trace[trace.length - 1]?.tool ?? "tool"}...`
+              : "Synthesizing final customer response draft and reasoning..."}
+          </p>
+          <Spinner size="md" />
+        </div>
       )}
       {isRunning && trace.length > 0 && <TraceAccordion trace={trace} isLive />}
       {errorMessage && (
