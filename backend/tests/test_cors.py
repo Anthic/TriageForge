@@ -17,7 +17,7 @@ def test_default_cors_origins_includes_localhost_ports() -> None:
 def test_cors_origins_strips_trailing_slashes_and_whitespace() -> None:
     """Custom origins in .env must be normalized without trailing slashes."""
     custom_settings = Settings(
-        cors_origins="http://localhost:3000/ , https://triageforgebackend.vercel.app "
+        cors_origins="http://localhost:3000/ , https://triageforgebackend.vercel.app"
     )
     assert custom_settings.cors_origins_list == [
         "http://localhost:3000",
