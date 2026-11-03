@@ -31,13 +31,21 @@ app = FastAPI(
 )
 app.state.limiter = limiter
 
-# CORS Policy
+# CORS Policy supporting local development (3000, 3001) and Vercel cloud deployments
+cors_regex = (
+    settings.cors_origin_regex.strip()
+    if settings.cors_origin_regex and settings.cors_origin_regex.strip()
+    else None
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=cors_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 

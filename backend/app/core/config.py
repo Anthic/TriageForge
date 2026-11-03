@@ -16,7 +16,14 @@ class Settings(BaseSettings):
     groq_api_key: str = Field(default="", description="Groq API key")
     groq_model: str = Field(default="openai/gpt-oss-20b", description="Groq model name")
     llm_fallback_model: str | None = Field(default="openai/gpt-oss-120b", description="Optional Groq fallback model")
-    cors_origins: str = Field(default="http://localhost:3000", description="Comma separated origins")
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+        description="Comma-separated allowed CORS origins",
+    )
+    cors_origin_regex: str | None = Field(
+        default=r"^https:\/\/.*\.vercel\.app$",
+        description="Regex pattern for dynamic origins like Vercel deployments and preview URLs",
+    )
     max_tool_calls: int = Field(default=3, description="Max allowed tool calls per triage")
     llm_timeout_seconds: int = Field(default=30, description="Timeout for LLM invocation")
     llm_requests_per_minute: int = Field(default=60, description="Max LLM requests per minute for rate limiting")
@@ -26,8 +33,10 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        """Parse comma-separated CORS origins into a clean list."""
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        """Parse comma-separated CORS origins into a clean, normalized list."""
+        if not self.cors_origins:
+            return []
+        return [origin.strip().rstrip("/") for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 settings = Settings()
