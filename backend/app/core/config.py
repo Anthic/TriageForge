@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     groq_model: str = Field(default="openai/gpt-oss-20b", description="Groq model name")
     llm_fallback_model: str | None = Field(default="openai/gpt-oss-120b", description="Optional Groq fallback model")
     cors_origins: str = Field(
-        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,https://triageforgebackend.vercel.app",
         description="Comma-separated allowed CORS origins",
     )
     cors_origin_regex: str | None = Field(
